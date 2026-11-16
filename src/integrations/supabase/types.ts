@@ -190,6 +190,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_chat_member: { Args: never; Returns: boolean }
       leave_mic: { Args: { _room: string }; Returns: undefined }
       mic_heartbeat: {
         Args: { _muted: boolean; _room: string }
