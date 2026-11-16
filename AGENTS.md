@@ -28,3 +28,11 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- Members log in by username only: the auth email is derived from a hash of the normalized username (`src/lib/auth-utils.ts`); guests use anonymous sign-in. Why: the chat has no email field, and the hash keeps Arabic names valid as emails.
+- Profiles are created by the `handle_new_user` trigger from signup metadata `username`; it rejects names already held by a member. Why: one place enforces name rules for guests and members.
+- Mic seats change only through the `take_mic` / `leave_mic` / `mic_heartbeat` database functions; a seat whose holder stops heartbeating for 45s counts as free. Why: closed tabs never leave a seat stuck.
+- Voice is peer-to-peer WebRTC (`src/lib/voice-mesh.ts`): each mic holder sends audio directly to every room member, signaling over the room's realtime broadcast channel. Why: no paid media server; fine for 5 speakers and modest rooms. Without a TURN server some strict networks can't connect.
+- Site-wide "who's online" uses realtime presence on the `online` channel (`OnlineProvider`); room membership uses presence on `room:<id>`. Why: no database writes for presence.

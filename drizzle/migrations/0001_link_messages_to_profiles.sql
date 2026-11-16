@@ -1,0 +1,3 @@
+ALTER TABLE public.room_messages ADD CONSTRAINT room_messages_user_fk FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.private_messages ADD CONSTRAINT private_messages_sender_fk FOREIGN KEY (sender_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.mic_seats ADD CONSTRAINT mic_seats_user_fk FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
