@@ -4,8 +4,9 @@ import { UserAvatar } from "./user-bits";
 
 export type SeatView = {
   seat: number;
-  user: { id: string; username: string; color: string; is_guest: boolean } | null;
+  user: { id: string; username: string; color: string; is_guest: boolean; avatar_path: string | null } | null;
   muted: boolean;
+  forceMuted: boolean;
 };
 
 export function MicSeats({
@@ -31,12 +32,12 @@ export function MicSeats({
             <button
               type="button"
               onClick={() => onSeatClick(s)}
-              disabled={busySeat !== null || (!!s.user && !mine)}
+              disabled={busySeat !== null}
               aria-label={s.user ? `مايك ${s.seat}: ${s.user.username}` : `اصعد على مايك ${s.seat}`}
               className={cn(
                 "relative flex size-14 items-center justify-center rounded-full transition sm:size-16",
                 s.user
-                  ? "cursor-default"
+                  ? "cursor-pointer"
                   : "border-2 border-dashed border-primary/50 bg-surface-raised text-primary hover:border-primary hover:bg-accent",
                 mine && "cursor-pointer ring-2 ring-primary ring-offset-2 ring-offset-surface",
                 busySeat === s.seat && "animate-pulse",

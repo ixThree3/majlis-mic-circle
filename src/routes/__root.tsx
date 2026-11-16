@@ -13,6 +13,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { OnlineProvider, SessionProvider } from "@/lib/session";
+import { StaffProvider } from "@/lib/staff";
+import { MemberCardProvider } from "@/components/chat/MemberCard";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -131,11 +133,15 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        <OnlineProvider>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-          <Toaster position="top-center" theme="dark" dir="rtl" />
-        </OnlineProvider>
+        <StaffProvider>
+          <OnlineProvider>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <MemberCardProvider>
+              <Outlet />
+            </MemberCardProvider>
+            <Toaster position="top-center" theme="dark" dir="rtl" />
+          </OnlineProvider>
+        </StaffProvider>
       </SessionProvider>
     </QueryClientProvider>
   );

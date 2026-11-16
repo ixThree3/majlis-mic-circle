@@ -6,8 +6,10 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useOnline, useSession } from "@/lib/session";
+import { useStaff } from "@/lib/staff";
 import { AppShell } from "@/components/chat/AppShell";
 import { UserAvatar, UserName } from "@/components/chat/user-bits";
+import { useMemberCard } from "@/components/chat/MemberCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -37,7 +39,7 @@ type PM = {
   read_at: string | null;
   created_at: string;
 };
-type MiniProfile = { id: string; username: string; color: string; is_guest: boolean; status: string };
+type MiniProfile = { id: string; username: string; color: string; is_guest: boolean; status: string; avatar_path: string | null };
 
 function MessagesPage() {
   const { with: withId } = Route.useSearch();
@@ -66,7 +68,7 @@ function MessagesPage() {
       }
       const ids = [...byOther.keys()];
       const { data: profs } = ids.length
-        ? await supabase.from("profiles").select("id, username, color, is_guest, status").in("id", ids)
+        ? await supabase.from("profiles").select("id, username, color, is_guest, status, avatar_path").in("id", ids)
         : { data: [] as MiniProfile[] };
       const pmap = new Map((profs ?? []).map((p) => [p.id, p as MiniProfile]));
       return ids.flatMap((id) => {
@@ -152,10 +154,12 @@ function MessagesPage() {
 
 function Thread({ otherId, meId, online }: { otherId: string; meId: string; online: boolean }) {
   const qc = useQueryClient();
+  const card = useMemberCard();
+  const silenced = useStaff().mySilence;
   const other = useQuery({
     queryKey: ["profile", otherId],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, username, color, is_guest, status").eq("id", otherId).maybeSingle();
+      const { data } = await supabase.from("profiles").select("id, username, color, is_guest, status, avatar_path").eq("id", otherId).maybeSingle();
       return data as MiniProfile | null;
     },
   });
@@ -242,13 +246,13 @@ function Thread({ otherId, meId, online }: { otherId: string; meId: string; onli
           </Link>
         </Button>
         {other.data && (
-          <>
+          <button type="button" onClick={() => card?.open(otherId)} className="flex min-w-0 items-center gap-3 text-start">
             <UserAvatar user={other.data} size="sm" />
             <div className="min-w-0">
-              <UserName user={other.data} className="block truncate" />
+              <UserName user={other.data} className="flex" />
               <p className="text-xs text-muted-foreground">{online ? "متصل الآن" : "غير متصل"}</p>
             </div>
-          </>
+          </button>
         )}
       </div>
       <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4 scrollbar-thin">
@@ -273,7 +277,7 @@ function Thread({ otherId, meId, online }: { otherId: string; meId: string; onli
         })}
       </div>
       <form onSubmit={send} className="flex gap-2 border-t border-border p-2.5">
-        <Input value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} placeholder="اكتب رسالة خاصة..." className="h-11 flex-1 bg-background/70" aria-label="رسالة خاصة" />
+        <Input value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} placeholder="اكتب رسالة خاصة..." disabled={!!silenced} className="h-11 flex-1 bg-background/70" aria-label="رسالة خاصة" />
         <Button type="submit" variant="gold" size="icon" className="size-11" disabled={sending || !text.trim()} aria-label="إرسال">
           <Send className="-scale-x-100" />
         </Button>

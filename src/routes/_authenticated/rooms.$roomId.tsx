@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { ArrowRight, Headphones, Mic, MicOff, PhoneOff, Send, Users, Volume2, VolumeX } from "lucide-react";
+import { ArrowRight, Headphones, Mic, MicOff, PhoneOff, Send, Trash2, Users, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isSeatActive } from "@/lib/auth-utils";
 import { roomQuery } from "@/lib/queries";
 import { useOnline, useSession } from "@/lib/session";
+import { useStaff } from "@/lib/staff";
+import { canManage } from "@/lib/permissions";
+import { useMemberCard } from "@/components/chat/MemberCard";
 import { useRoomVoice, useSpeakingIds, type RoomMember } from "@/lib/use-room-voice";
 import { AppShell } from "@/components/chat/AppShell";
 import { MicSeats, type SeatView } from "@/components/chat/MicSeats";
@@ -37,11 +40,11 @@ type MessageRow = {
   body: string;
   created_at: string;
   user_id: string;
-  profile: { username: string; color: string; is_guest: boolean } | null;
+  profile: { id: string; username: string; color: string; is_guest: boolean; avatar_path: string | null } | null;
 };
 
-const MSG_SELECT = "id, body, created_at, user_id, profile:profiles!room_messages_user_fk(username, color, is_guest)";
-const SEAT_SELECT = "seat, user_id, muted, last_seen, profile:profiles!mic_seats_user_fk(id, username, color, is_guest)";
+const MSG_SELECT = "id, body, created_at, user_id, profile:profiles!room_messages_user_fk(id, username, color, is_guest, avatar_path)";
+const SEAT_SELECT = "seat, user_id, muted, force_muted, last_seen, profile:profiles!mic_seats_user_fk(id, username, color, is_guest, avatar_path)";
 
 function RoomPage() {
   const { roomId } = Route.useParams();
@@ -65,7 +68,30 @@ function RoomPage() {
 function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName: string; roomDescription: string }) {
   const { profile } = useSession();
   const { setCurrentRoom } = useOnline();
+  const staff = useStaff();
+  const card = useMemberCard();
+  const navigate = useNavigate();
   const qc = useQueryClient();
+
+  // room renamed or removed by staff
+  useEffect(() => {
+    const ch = supabase
+      .channel(`room-meta-${roomId}-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${roomId}` }, () => {
+        void qc.invalidateQueries({ queryKey: ["room", roomId] });
+        void qc.invalidateQueries({ queryKey: ["rooms"] });
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "rooms" }, (p) => {
+        if ((p.old as { id?: string }).id !== roomId) return;
+        toast("تم حذف هذه الغرفة");
+        void qc.invalidateQueries({ queryKey: ["rooms"] });
+        void navigate({ to: "/rooms" });
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [roomId, qc, navigate]);
 
   useEffect(() => {
     setCurrentRoom(roomId);
@@ -73,7 +99,10 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
   }, [roomId, setCurrentRoom]);
 
   const me = useMemo<RoomMember | null>(
-    () => (profile ? { id: profile.id, username: profile.username, color: profile.color, status: profile.status, is_guest: profile.is_guest } : null),
+    () =>
+      profile
+        ? { id: profile.id, username: profile.username, color: profile.color, status: profile.status, is_guest: profile.is_guest, avatar_path: profile.avatar_path }
+        : null,
     [profile],
   );
   const voice = useRoomVoice(roomId, me);
@@ -115,8 +144,11 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
       const active = row && isSeatActive(row, now) && row.profile;
       return {
         seat: n,
-        user: active ? { id: row.profile!.id, username: row.profile!.username, color: row.profile!.color, is_guest: row.profile!.is_guest } : null,
-        muted: active ? row.muted : false,
+        user: active
+          ? { id: row.profile!.id, username: row.profile!.username, color: row.profile!.color, is_guest: row.profile!.is_guest, avatar_path: row.profile!.avatar_path }
+          : null,
+        muted: active ? row.muted || row.force_muted : false,
+        forceMuted: active ? row.force_muted : false,
       };
     });
   }, [seatsQuery.data, now]);
@@ -140,8 +172,21 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
   }, [stopSpeaking, roomId, qc]);
 
   async function onSeatClick(seat: SeatView) {
-    if (seat.user?.id === me?.id) return toggleMute();
-    if (seat.user) return;
+    if (seat.user && seat.user.id !== me?.id) {
+      card?.open(seat.user.id, { roomId, seat: seat.seat, forceMuted: seat.forceMuted });
+      return;
+    }
+    if (seat.user?.id === me?.id) {
+      if (staff.can("moderate_mics")) {
+        card?.open(seat.user.id, { roomId, seat: seat.seat, forceMuted: seat.forceMuted });
+        return;
+      }
+      return toggleMute();
+    }
+    if (staff.mySilence) {
+      toast.error("أنت مسكت حالياً وما تقدر تصعد المايك");
+      return;
+    }
     setBusySeat(seat.seat);
     try {
       const { data: ok, error } = await supabase.rpc("take_mic", { _room: roomId, _seat: seat.seat });
@@ -164,7 +209,21 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
     }
   }
 
+  const forceMuted = !!mySeat?.forceMuted;
+  // staff muted me: silence my microphone until they lift it
+  useEffect(() => {
+    if (forceMuted) {
+      setMuted(true);
+      setVoiceMuted(true);
+      toast("قام المشرف بكتم مايكك");
+    }
+  }, [forceMuted, setVoiceMuted]);
+
   function toggleMute() {
+    if (forceMuted) {
+      toast.error("مايكك مكتوم من المشرف");
+      return;
+    }
     const next = !muted;
     setMuted(next);
     setVoiceMuted(next);
@@ -201,6 +260,7 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
   const [audioKey, setAudioKey] = useState(0);
   const onBlocked = useCallback(() => setAudioBlocked(true), []);
   const remoteStreams = [...voice.streams].filter(([id]) => id !== me?.id);
+  const forceMutedIds = new Set(seats.flatMap((s) => (s.user && s.forceMuted ? [s.user.id] : [])));
 
   /* ---------- messages ---------- */
   const messagesQuery = useQuery({
@@ -227,11 +287,26 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
           old.some((m) => m.id === data.id) ? old : [...old, data as unknown as MessageRow].slice(-200),
         );
       })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "room_messages" }, (p) => {
+        const id = (p.old as { id?: string }).id;
+        if (id) qc.setQueryData<MessageRow[]>(["room-messages", roomId], (old = []) => old.filter((m) => m.id !== id));
+      })
       .subscribe();
     return () => {
       void supabase.removeChannel(ch);
     };
   }, [roomId, qc]);
+
+  async function deleteMessage(id: string) {
+    const { error } = await supabase.rpc("admin_delete_message", { _id: id });
+    if (error) {
+      toast.error("ما قدرنا نحذف الرسالة");
+      return;
+    }
+    qc.setQueryData<MessageRow[]>(["room-messages", roomId], (old = []) => old.filter((m) => m.id !== id));
+  }
+  const canDeleteMsg = (authorId: string) =>
+    staff.can("delete_messages") && (authorId === me?.id || canManage(staff.myLevel, staff.levelOf(authorId), false));
 
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -259,7 +334,7 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
   return (
     <AppShell>
       {remoteStreams.map(([id, stream]) => (
-        <RemoteAudio key={`${id}-${audioKey}`} stream={stream} muted={deafened} onBlocked={onBlocked} />
+        <RemoteAudio key={`${id}-${audioKey}`} stream={stream} muted={deafened || forceMutedIds.has(id)} onBlocked={onBlocked} />
       ))}
       <div className="mx-auto flex h-full max-w-6xl gap-4 px-0 sm:px-4 sm:py-4">
         <section className="flex min-w-0 flex-1 flex-col overflow-hidden border-border bg-surface sm:rounded-2xl sm:border">
@@ -303,7 +378,7 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
             {onMic && mySeat ? (
               <div className="mt-4 flex justify-center gap-2">
                 <Button variant={muted ? "destructive" : "glass"} size="sm" onClick={toggleMute}>
-                  {muted ? <MicOff /> : <Mic />} {muted ? "المايك مكتوم" : "كتم المايك"}
+                  {muted ? <MicOff /> : <Mic />} {forceMuted ? "مكتوم من المشرف" : muted ? "المايك مكتوم" : "كتم المايك"}
                 </Button>
                 <Button variant="glass" size="sm" onClick={() => void leaveMic()}>
                   <PhoneOff /> نزول من المايك
@@ -339,15 +414,29 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
             {messagesQuery.data?.map((m) => (
               <div
                 key={m.id}
-                className={`flex animate-float-in gap-2.5 rounded-xl px-2 py-1.5 ${m.user_id === me?.id ? "bg-bubble-self/40" : ""}`}
+                className={`group flex animate-float-in gap-2.5 rounded-xl px-2 py-1.5 ${m.user_id === me?.id ? "bg-bubble-self/40" : ""}`}
               >
-                <UserAvatar user={m.profile ?? { username: "؟", color: "pearl" }} size="sm" />
+                <button type="button" onClick={() => card?.open(m.user_id)} className="shrink-0 self-start rounded-full" aria-label="عرض الملف">
+                  <UserAvatar user={m.profile ?? { username: "؟", color: "pearl" }} size="sm" />
+                </button>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <UserName user={m.profile ?? { username: "عضو", color: "pearl" }} className="text-sm" />
-                    <time className="text-[0.7rem] text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => card?.open(m.user_id)} className="min-w-0">
+                      <UserName user={m.profile ?? { id: m.user_id, username: "عضو", color: "pearl" }} className="text-sm" />
+                    </button>
+                    <time className="shrink-0 text-[0.7rem] text-muted-foreground">
                       {new Date(m.created_at).toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
                     </time>
+                    {canDeleteMsg(m.user_id) && (
+                      <button
+                        type="button"
+                        onClick={() => void deleteMessage(m.id)}
+                        className="ms-auto rounded p-1 text-muted-foreground opacity-60 transition hover:bg-destructive/20 hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
+                        aria-label="حذف الرسالة"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    )}
                   </div>
                   <p className="whitespace-pre-wrap break-words text-[0.95rem] leading-relaxed">{m.body}</p>
                 </div>
@@ -360,9 +449,10 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
               value={text}
               onChange={(e) => setText(e.target.value)}
               maxLength={500}
-              placeholder="اكتب رسالتك..."
+              placeholder={staff.mySilence ? "أنت مسكت حالياً" : "اكتب رسالتك..."}
               className="h-11 flex-1 bg-background/70"
               aria-label="الرسالة"
+              disabled={!!staff.mySilence}
             />
             <Button type="submit" variant="gold" size="icon" className="size-11" disabled={sending || !text.trim()} aria-label="إرسال">
               <Send className="-scale-x-100" />

@@ -14,8 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string
+          created_at: string
+          details: string
+          id: string
+          target_id: string | null
+          target_name: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string
+          created_at?: string
+          details?: string
+          id?: string
+          target_id?: string | null
+          target_name?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string
+          created_at?: string
+          details?: string
+          id?: string
+          target_id?: string | null
+          target_name?: string
+        }
+        Relationships: []
+      }
+      bans: {
+        Row: {
+          banned_by: string | null
+          created_at: string
+          expires_at: string | null
+          kind: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          banned_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          kind?: string
+          reason?: string
+          user_id: string
+        }
+        Update: {
+          banned_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          kind?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mic_seats: {
         Row: {
+          force_muted: boolean
           last_seen: string | null
           muted: boolean
           room_id: string
@@ -23,6 +92,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          force_muted?: boolean
           last_seen?: string | null
           muted?: boolean
           room_id: string
@@ -30,6 +100,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          force_muted?: boolean
           last_seen?: string | null
           muted?: boolean
           room_id?: string
@@ -95,30 +166,102 @@ export type Database = {
           },
         ]
       }
+      profile_likes: {
+        Row: {
+          created_at: string
+          liker_id: string
+          target_id: string
+        }
+        Insert: {
+          created_at?: string
+          liker_id: string
+          target_id: string
+        }
+        Update: {
+          created_at?: string
+          liker_id?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_likes_liker_id_fkey"
+            columns: ["liker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_likes_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          avatar_path: string | null
           color: string
           created_at: string
           id: string
           is_guest: boolean
+          likes_count: number
           status: string
           username: string
         }
         Insert: {
+          avatar_path?: string | null
           color?: string
           created_at?: string
           id: string
           is_guest?: boolean
+          likes_count?: number
           status?: string
           username: string
         }
         Update: {
+          avatar_path?: string | null
           color?: string
           created_at?: string
           id?: string
           is_guest?: boolean
+          likes_count?: number
           status?: string
           username?: string
+        }
+        Relationships: []
+      }
+      ranks: {
+        Row: {
+          color: string
+          created_at: string
+          icon: string
+          id: string
+          is_owner: boolean
+          level: number
+          name: string
+          permissions: string[]
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_owner?: boolean
+          level: number
+          name: string
+          permissions?: string[]
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_owner?: boolean
+          level?: number
+          name?: string
+          permissions?: string[]
         }
         Relationships: []
       }
@@ -185,18 +328,127 @@ export type Database = {
         }
         Relationships: []
       }
+      user_ranks: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          expires_at: string | null
+          rank_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          expires_at?: string | null
+          rank_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          expires_at?: string | null
+          rank_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_ranks_rank_id_fkey"
+            columns: ["rank_id"]
+            isOneToOne: false
+            referencedRelation: "ranks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_ranks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      admin_ban: {
+        Args: {
+          _kind: string
+          _minutes: number
+          _reason: string
+          _user: string
+        }
+        Returns: undefined
+      }
+      admin_clear_avatar: { Args: { _user: string }; Returns: undefined }
+      admin_delete_message: { Args: { _id: string }; Returns: undefined }
+      admin_delete_rank: { Args: { _id: string }; Returns: undefined }
+      admin_delete_room: { Args: { _room: string }; Returns: undefined }
+      admin_mic_kick: {
+        Args: { _room: string; _seat: number }
+        Returns: undefined
+      }
+      admin_mic_mute: {
+        Args: { _muted: boolean; _room: string; _seat: number }
+        Returns: undefined
+      }
+      admin_rename_user: {
+        Args: { _name: string; _user: string }
+        Returns: undefined
+      }
+      admin_save_rank: {
+        Args: {
+          _color: string
+          _icon: string
+          _id: string
+          _level: number
+          _name: string
+          _permissions: string[]
+        }
+        Returns: string
+      }
+      admin_set_likes: {
+        Args: { _count: number; _user: string }
+        Returns: undefined
+      }
+      admin_set_user_rank: {
+        Args: { _days: number; _rank: string; _user: string }
+        Returns: undefined
+      }
+      admin_unban: {
+        Args: { _kind: string; _user: string }
+        Returns: undefined
+      }
+      admin_update_room: {
+        Args: { _description: string; _name: string; _room: string }
+        Returns: undefined
+      }
+      can_act_on: { Args: { _perm: string; _target: string }; Returns: boolean }
+      can_manage_user: {
+        Args: { _actor: string; _target: string }
+        Returns: boolean
+      }
+      can_post: { Args: never; Returns: boolean }
+      has_permission: {
+        Args: { _perm: string; _uid: string }
+        Returns: boolean
+      }
+      is_banned: { Args: { _uid: string }; Returns: boolean }
       is_chat_member: { Args: never; Returns: boolean }
+      is_silenced: { Args: { _uid: string }; Returns: boolean }
       leave_mic: { Args: { _room: string }; Returns: undefined }
+      log_admin: {
+        Args: { _action: string; _details: string; _target: string }
+        Returns: undefined
+      }
       mic_heartbeat: {
         Args: { _muted: boolean; _room: string }
         Returns: boolean
       }
+      rank_level: { Args: { _uid: string }; Returns: number }
       take_mic: { Args: { _room: string; _seat: number }; Returns: boolean }
+      toggle_like: { Args: { _target: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

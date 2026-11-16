@@ -3,13 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { VoiceMesh } from "./voice-mesh";
 import type { OnlineUser } from "./session";
 
-export type RoomMember = Pick<OnlineUser, "id" | "username" | "color" | "status" | "is_guest">;
+export type RoomMember = Pick<OnlineUser, "id" | "username" | "color" | "status" | "is_guest" | "avatar_path">;
 
 /** Joins a room's live channel: who is in the room + voice between mic holders and listeners. */
 export function useRoomVoice(roomId: string, me: RoomMember | null) {
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [streams, setStreams] = useState<Map<string, MediaStream>>(new Map());
   const meshRef = useRef<VoiceMesh | null>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!me) return;
@@ -17,6 +18,7 @@ export function useRoomVoice(roomId: string, me: RoomMember | null) {
       config: { presence: { key: me.id }, broadcast: { self: false } },
     });
     const mesh = new VoiceMesh(channel, me.id, setStreams);
+    channelRef.current = null;
     meshRef.current = mesh;
 
     channel
@@ -30,18 +32,27 @@ export function useRoomVoice(roomId: string, me: RoomMember | null) {
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
-          await channel.track({ id: me.id, username: me.username, color: me.color, status: me.status, is_guest: me.is_guest });
+          await channel.track({ id: me.id, username: me.username, color: me.color, status: me.status, is_guest: me.is_guest, avatar_path: me.avatar_path });
           mesh.announce();
+          channelRef.current = channel;
         }
       });
 
     return () => {
       mesh.destroy();
       meshRef.current = null;
+      channelRef.current = null;
       void supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, me?.id]);
+
+  // keep my presence card fresh (new photo, status) without reconnecting voice
+  useEffect(() => {
+    const ch = channelRef.current;
+    if (!ch || !me) return;
+    void ch.track({ id: me.id, username: me.username, color: me.color, status: me.status, is_guest: me.is_guest, avatar_path: me.avatar_path });
+  }, [me]);
 
   const startSpeaking = useCallback(async () => {
     if (!meshRef.current) throw new Error("not connected");

@@ -58,15 +58,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     await router.navigate({ to: "/", replace: true });
   }, [queryClient, router]);
 
+  const userId = session?.user.id;
+  const refreshProfile = useCallback(() => loadProfile(userId), [loadProfile, userId]);
+
   const value = useMemo<SessionState>(
-    () => ({
-      session,
-      profile,
-      loading,
-      refreshProfile: () => loadProfile(session?.user.id),
-      signOut,
-    }),
-    [session, profile, loading, loadProfile, signOut],
+    () => ({ session, profile, loading, refreshProfile, signOut }),
+    [session, profile, loading, refreshProfile, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
@@ -86,6 +83,7 @@ export type OnlineUser = {
   color: string;
   status: string;
   is_guest: boolean;
+  avatar_path: string | null;
   room_id: string | null;
 };
 
@@ -114,7 +112,7 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
       const list: OnlineUser[] = [];
       for (const metas of Object.values(state)) {
         const m = metas[0];
-        if (m && m.id) list.push({ id: m.id, username: m.username, color: m.color, status: m.status, is_guest: m.is_guest, room_id: m.room_id });
+        if (m && m.id) list.push({ id: m.id, username: m.username, color: m.color, status: m.status, is_guest: m.is_guest, avatar_path: m.avatar_path ?? null, room_id: m.room_id });
       }
       list.sort((a, b) => Number(a.is_guest) - Number(b.is_guest) || a.username.localeCompare(b.username, "ar"));
       setUsers(list);
@@ -138,6 +136,7 @@ export function OnlineProvider({ children }: { children: ReactNode }) {
       color: profile.color,
       status: profile.status,
       is_guest: profile.is_guest,
+      avatar_path: profile.avatar_path,
       room_id: roomId,
     };
     let cancelled = false;

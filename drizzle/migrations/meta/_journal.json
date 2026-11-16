@@ -22,6 +22,20 @@
       "when": 1794843286388,
       "tag": "0002_scope_chat_read_access",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794844168978,
+      "tag": "0003_ranks_moderation_avatars_likes",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794844194619,
+      "tag": "0004_avatar_storage_policies",
+      "breakpoints": true
     }
   ]
 }

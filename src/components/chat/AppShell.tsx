@@ -1,12 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DoorOpen, LogOut, Mail, UserRound, Users } from "lucide-react";
+import { Ban, DoorOpen, LayoutDashboard, LogOut, Mail, UserRound, Users, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useOnline, useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useStaff } from "@/lib/staff";
+import { Button } from "@/components/ui/button";
 import { ProfileDialog } from "./ProfileDialog";
 import { Logo, UserAvatar, UserName } from "./user-bits";
 
@@ -61,8 +63,27 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
   const { profile, signOut } = useSession();
   const { users } = useOnline();
   const unread = useUnreadCount();
+  const { isStaff, myBan, mySilence } = useStaff();
   const [profileOpen, setProfileOpen] = useState(false);
   usePrivateMessageAlerts();
+
+  if (myBan) {
+    return (
+      <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-gradient-night px-6 text-center">
+        <span className="flex size-16 items-center justify-center rounded-full bg-destructive/20 text-destructive">
+          <Ban className="size-8" />
+        </span>
+        <h1 className="font-display text-3xl">تم حظرك من الموقع</h1>
+        <p className="max-w-sm text-muted-foreground">
+          {myBan.expires_at ? `ينتهي الحظر ${new Date(myBan.expires_at).toLocaleString("ar")}` : "الحظر دائم"}
+          {myBan.reason ? ` — السبب: ${myBan.reason}` : ""}
+        </p>
+        <Button variant="glass" onClick={() => void signOut()}>
+          <LogOut /> خروج
+        </Button>
+      </div>
+    );
+  }
 
   const navCls = "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent/60 hover:text-foreground";
 
@@ -87,6 +108,12 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
                 </span>
               )}
             </Link>
+            {isStaff && (
+              <Link to="/admin" className={navCls} activeProps={{ className: "bg-accent text-foreground" }}>
+                <LayoutDashboard className="size-4" />
+                <span className="hidden sm:inline">لوحة التحكم</span>
+              </Link>
+            )}
           </nav>
           <div className="ms-auto flex items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground">
@@ -109,6 +136,13 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
                   <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
                     <UserRound className="size-4" /> ملفي
                   </DropdownMenuItem>
+                  {isStaff && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">
+                        <LayoutDashboard className="size-4" /> لوحة التحكم
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onSelect={() => void signOut()} className="text-destructive focus:text-destructive">
                     <LogOut className="size-4" /> خروج
                   </DropdownMenuItem>
@@ -118,6 +152,12 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
           </div>
         </div>
       </header>
+      {mySilence && (
+        <div className="flex items-center justify-center gap-2 bg-destructive/15 px-3 py-1.5 text-center text-xs text-destructive">
+          <VolumeX className="size-3.5" />
+          تم إسكاتك {mySilence.expires_at ? `حتى ${new Date(mySilence.expires_at).toLocaleString("ar")}` : "بشكل دائم"} — تقدر تقرأ وتسمع بس ما تقدر تكتب أو تصعد المايك
+        </div>
+      )}
       <main className="min-h-0 flex-1">{children}</main>
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
