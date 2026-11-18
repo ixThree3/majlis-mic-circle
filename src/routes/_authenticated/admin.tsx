@@ -180,7 +180,7 @@ function Overview() {
   const stats = [
     { label: "متصل الآن", value: users.length, icon: Wifi },
     { label: "الأعضاء", value: members.data, icon: Users },
-    { label: "الزوار المسجلين", value: guests.data, icon: Users },
+    { label: "حسابات الزوار", value: guests.data, icon: Users },
     { label: "الغرف", value: rooms.data, icon: DoorOpen },
     { label: "الرتب", value: staff.ranks.length, icon: ShieldCheck },
     ...(staff.can("ban_users") ? [{ label: "حظر وإسكات فعّال", value: bans.data, icon: Ban }] : []),
@@ -338,8 +338,8 @@ function NewMemberDialog() {
     const username = String(fd.get("username") ?? "").trim();
     const password = String(fd.get("password") ?? "");
     const nameErr = validateUsername(username);
-    if (nameErr) return toast.error(nameErr);
-    if (password.length < 6) return toast.error("كلمة المرور 6 أحرف على الأقل");
+    if (nameErr) { toast.error(nameErr); return; }
+    if (password.length < 6) { toast.error("كلمة المرور 6 أحرف على الأقل"); return; }
     setBusy(true);
     try {
       await create({ data: { username, password } });
@@ -403,7 +403,7 @@ function Ranks() {
 
   async function remove(r: Rank) {
     const { error } = await supabase.rpc("admin_delete_rank", { _id: r.id });
-    if (error) return toast.error(adminErrorToArabic(error.message));
+    if (error) { toast.error(adminErrorToArabic(error.message)); return; }
     toast.success("تم حذف الرتبة");
   }
 
@@ -500,7 +500,7 @@ function Bans() {
 
   async function lift(userId: string, kind: string) {
     const { error } = await supabase.rpc("admin_unban", { _user: userId, _kind: kind });
-    if (error) return toast.error(adminErrorToArabic(error.message));
+    if (error) { toast.error(adminErrorToArabic(error.message)); return; }
     toast.success("تم الفك");
     void qc.invalidateQueries({ queryKey: ["admin-bans"] });
   }
@@ -562,7 +562,7 @@ function Rooms() {
 
   async function remove(id: string) {
     const { error } = await supabase.rpc("admin_delete_room", { _room: id });
-    if (error) return toast.error(adminErrorToArabic(error.message));
+    if (error) { toast.error(adminErrorToArabic(error.message)); return; }
     toast.success("تم حذف الغرفة");
     void qc.invalidateQueries({ queryKey: ["rooms"] });
   }
@@ -608,7 +608,7 @@ function RoomEditDialog({ room }: { room: { id: string; name: string; descriptio
       _description: String(fd.get("description") ?? ""),
     });
     setBusy(false);
-    if (error) return toast.error("اسم الغرفة بين 2 و 30 حرف، والوصف 120 حرف كحد أقصى");
+    if (error) { toast.error("اسم الغرفة بين 2 و 30 حرف، والوصف 120 حرف كحد أقصى"); return; }
     toast.success("تم حفظ الغرفة");
     void qc.invalidateQueries({ queryKey: ["rooms"] });
     void qc.invalidateQueries({ queryKey: ["room", room.id] });

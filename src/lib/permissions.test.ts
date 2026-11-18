@@ -19,9 +19,9 @@ describe("ranks", () => {
     expect(canManage(1000, 0, true)).toBe(false);
   });
 
-  it("only offers ranks below your own", () => {
+  it("only offers ranks below your own, but owners can also make new owners", () => {
     expect(assignableRanks([owner, admin, mod], 500)).toEqual([mod]);
-    expect(assignableRanks([owner, admin, mod], 1000)).toEqual([admin, mod]);
+    expect(assignableRanks([owner, admin, mod], 1000)).toEqual([owner, admin, mod]);
   });
 
   it("drops a timed rank once its days run out", () => {

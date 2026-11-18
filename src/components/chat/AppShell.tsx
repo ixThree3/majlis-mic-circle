@@ -95,11 +95,11 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
             <Logo />
           </Link>
           <nav className="flex items-center gap-1">
-            <Link to="/rooms" className={navCls} activeProps={{ className: "bg-accent text-foreground" }}>
+            <Link to="/rooms" aria-label="الغرف" className={navCls} activeProps={{ className: "bg-accent text-foreground" }}>
               <DoorOpen className="size-4" />
               <span className="hidden sm:inline">الغرف</span>
             </Link>
-            <Link to="/messages" search={{ with: undefined }} className={cn(navCls, "relative")} activeProps={{ className: "bg-accent text-foreground" }}>
+            <Link to="/messages" search={{ with: undefined }} aria-label="الخاص" className={cn(navCls, "relative")} activeProps={{ className: "bg-accent text-foreground" }}>
               <Mail className="size-4" />
               <span className="hidden sm:inline">الخاص</span>
               {!!unread.data && (
@@ -109,7 +109,7 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
               )}
             </Link>
             {isStaff && (
-              <Link to="/admin" className={navCls} activeProps={{ className: "bg-accent text-foreground" }}>
+              <Link to="/admin" aria-label="لوحة التحكم" className={navCls} activeProps={{ className: "bg-accent text-foreground" }}>
                 <LayoutDashboard className="size-4" />
                 <span className="hidden sm:inline">لوحة التحكم</span>
               </Link>

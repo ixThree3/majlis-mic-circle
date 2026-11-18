@@ -176,7 +176,7 @@ function Room({ roomId, roomName, roomDescription }: { roomId: string; roomName:
       card?.open(seat.user.id, { roomId, seat: seat.seat, forceMuted: seat.forceMuted });
       return;
     }
-    if (seat.user?.id === me?.id) {
+    if (seat.user && seat.user.id === me?.id) {
       if (staff.can("moderate_mics")) {
         card?.open(seat.user.id, { roomId, seat: seat.seat, forceMuted: seat.forceMuted });
         return;

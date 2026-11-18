@@ -39,7 +39,7 @@ export function useMemberCard() {
 
 export function MemberCardProvider({ children }: { children: ReactNode }) {
   const { profile } = useSession();
-  const [target, setTarget] = useState<{ id: string; mic?: MicContext } | null>(null);
+  const [target, setTarget] = useState<{ id: string; mic?: MicContext | undefined } | null>(null);
   const open = useCallback((id: string, mic?: MicContext) => setTarget({ id, mic }), []);
   const signedIn = !!profile;
   const value = useMemo(() => (signedIn ? { open } : null), [open, signedIn]);
@@ -70,7 +70,7 @@ export function useProfileCard(userId: string) {
   });
 }
 
-function MemberCardBody({ userId, mic, onClose }: { userId: string; mic?: MicContext; onClose: () => void }) {
+function MemberCardBody({ userId, mic, onClose }: { userId: string; mic?: MicContext | undefined; onClose: () => void }) {
   const { profile: me } = useSession();
   const { users } = useOnline();
   const staff = useStaff();
@@ -93,11 +93,11 @@ function MemberCardBody({ userId, mic, onClose }: { userId: string; mic?: MicCon
   const [liking, setLiking] = useState(false);
   async function toggleLike() {
     if (!me) return;
-    if (me.is_guest) return toast("اللايكات للأعضاء المسجلين فقط");
+    if (me.is_guest) { toast("اللايكات للأعضاء المسجلين فقط"); return; }
     setLiking(true);
     const { error } = await supabase.rpc("toggle_like", { _target: userId });
     setLiking(false);
-    if (error) return toast.error("ما قدرنا نسجل اللايك");
+    if (error) { toast.error("ما قدرنا نسجل اللايك"); return; }
     void qc.invalidateQueries({ queryKey: ["my-like", userId] });
     void qc.invalidateQueries({ queryKey: ["profile-card", userId] });
   }
@@ -203,7 +203,7 @@ function StaffTools({
   profile: CardProfile;
   isMe: boolean;
   outranks: boolean;
-  mic?: MicContext;
+  mic?: MicContext | undefined;
   onDone: () => void;
   onDeleted: () => void;
 }) {

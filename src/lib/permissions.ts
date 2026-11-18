@@ -41,9 +41,9 @@ export function canManage(myLevel: number, targetLevel: number, isSelf: boolean)
   return !isSelf && myLevel > targetLevel;
 }
 
-/** Ranks you are allowed to hand out: strictly below your own level. */
+/** Ranks you are allowed to hand out: strictly below your own level; owners may also hand out the owner rank. */
 export function assignableRanks<T extends RankLike>(ranks: T[], myLevel: number): T[] {
-  return ranks.filter((r) => effectiveLevel(r) < myLevel);
+  return ranks.filter((r) => effectiveLevel(r) < myLevel || (r.is_owner && myLevel >= OWNER_LEVEL));
 }
 
 export const BAN_DURATIONS = [

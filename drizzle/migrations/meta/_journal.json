@@ -36,6 +36,13 @@
       "when": 1794844194619,
       "tag": "0004_avatar_storage_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794996595191,
+      "tag": "0005_owners_can_grant_owner_rank",
+      "breakpoints": true
     }
   ]
 }
