@@ -9,6 +9,7 @@ export const PERMISSIONS = [
   { key: "delete_messages", label: "حذف رسائل الغرف" },
   { key: "manage_rooms", label: "تعديل وحذف الغرف" },
   { key: "view_log", label: "مشاهدة سجل الإشراف" },
+  { key: "reveal_users", label: "الكشف (وقت الدخول، الآيبي، نوع الجهاز)" },
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number]["key"];
@@ -77,6 +78,8 @@ export const LOG_ACTIONS: Record<string, string> = {
   member_create: "إنشاء عضوية",
   member_delete: "حذف عضوية",
   password_reset: "تغيير كلمة مرور",
+  settings: "تعديل إعدادات الموقع",
+  room_clear: "مسح رسائل غرفة",
 };
 
 export function adminErrorToArabic(message: string | undefined): string {
@@ -88,4 +91,38 @@ export function adminErrorToArabic(message: string | undefined): string {
   if (m.includes("RANK_NAME_INVALID")) return "اسم الرتبة بين 2 و 24 حرف";
   if (m.includes("GUEST")) return "ما يمكن ترقية الزوار، لازم عضوية مسجلة";
   return "حدث خطأ، حاول مرة أخرى";
+}
+
+export type DeviceInfo = { device: string; os: string; browser: string };
+
+/** Rough, dependency-free reading of a browser's user-agent string for the reveal tool. */
+export function parseUserAgent(ua: string): DeviceInfo {
+  const u = ua || "";
+  const tablet = /iPad|Tablet|PlayBook|Silk/i.test(u) || (/Android/i.test(u) && !/Mobile/i.test(u));
+  const mobile = !tablet && /Mobi|iPhone|iPod|Android|IEMobile|Opera Mini/i.test(u);
+  const device = tablet ? "تابلت" : mobile ? "جوال" : u ? "كمبيوتر" : "غير معروف";
+  let os = "غير معروف";
+  if (/iPhone|iPad|iPod/i.test(u)) os = "iOS";
+  else if (/Android/i.test(u)) os = "Android";
+  else if (/Windows/i.test(u)) os = "Windows";
+  else if (/Mac OS X|Macintosh/i.test(u)) os = "macOS";
+  else if (/CrOS/i.test(u)) os = "ChromeOS";
+  else if (/Linux/i.test(u)) os = "Linux";
+  let browser = "غير معروف";
+  if (/Edg\//i.test(u)) browser = "Edge";
+  else if (/OPR\/|Opera/i.test(u)) browser = "Opera";
+  else if (/SamsungBrowser/i.test(u)) browser = "Samsung Internet";
+  else if (/Firefox|FxiOS/i.test(u)) browser = "Firefox";
+  else if (/Chrome|CriOS/i.test(u)) browser = "Chrome";
+  else if (/Safari/i.test(u)) browser = "Safari";
+  return { device, os, browser };
+}
+
+/** Picks the visitor's address from proxy headers (Cloudflare first). */
+export function clientIpFromHeaders(get: (name: string) => string | null): string {
+  const cf = get("cf-connecting-ip");
+  if (cf) return cf.trim();
+  const fwd = get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]!.trim();
+  return (get("x-real-ip") ?? "").trim();
 }

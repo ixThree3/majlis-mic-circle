@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { recordLogin } from "./login.functions";
 
 export type Profile = Tables<"profiles">;
 
@@ -59,6 +60,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [queryClient, router]);
 
   const userId = session?.user.id;
+
+  // one sign-in record per browser tab session (for staff "reveal")
+  const profileId = profile?.id;
+  useEffect(() => {
+    if (!profileId) return;
+    const key = `login-recorded-${profileId}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      /* storage blocked: still record */
+    }
+    recordLogin().catch(() => {
+      try {
+        sessionStorage.removeItem(key);
+      } catch {
+        /* ignore */
+      }
+    });
+  }, [profileId]);
+
   const refreshProfile = useCallback(() => loadProfile(userId), [loadProfile, userId]);
 
   const value = useMemo<SessionState>(

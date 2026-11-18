@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo, UserAvatar, UserName } from "@/components/chat/user-bits";
+import { useSiteSettings } from "@/lib/site-settings";
 import heroImg from "@/assets/gulf-night.jpg";
 
 export const Route = createFileRoute("/")({
@@ -105,6 +106,10 @@ function Index() {
 function AuthCard() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const settings = useSiteSettings().data;
+  const guestsOn = settings?.guests_enabled ?? true;
+  const signupsOn = settings?.signups_enabled ?? true;
+  const tabCount = 1 + Number(guestsOn) + Number(signupsOn);
 
   async function guest(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -156,11 +161,11 @@ function AuthCard() {
 
   return (
     <div className="rounded-2xl border border-border bg-gradient-panel p-5 shadow-panel">
-      <Tabs defaultValue="guest" dir="rtl">
-        <TabsList className="grid h-auto w-full grid-cols-3 bg-background/60 p-1">
-          <TabsTrigger value="guest" className="py-2">دخول الزوار</TabsTrigger>
+      <Tabs key={`${guestsOn}-${signupsOn}`} defaultValue={guestsOn ? "guest" : "member"} dir="rtl">
+        <TabsList className={`grid h-auto w-full bg-background/60 p-1 ${tabCount === 3 ? "grid-cols-3" : tabCount === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+          {guestsOn && <TabsTrigger value="guest" className="py-2">دخول الزوار</TabsTrigger>}
           <TabsTrigger value="member" className="py-2">دخول الأعضاء</TabsTrigger>
-          <TabsTrigger value="register" className="py-2">تسجيل عضوية</TabsTrigger>
+          {signupsOn && <TabsTrigger value="register" className="py-2">تسجيل عضوية</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="guest" className="mt-5">

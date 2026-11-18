@@ -82,6 +82,47 @@ export type Database = {
           },
         ]
       }
+      login_events: {
+        Row: {
+          browser: string
+          created_at: string
+          device: string
+          id: string
+          ip: string
+          os: string
+          user_agent: string
+          user_id: string
+        }
+        Insert: {
+          browser?: string
+          created_at?: string
+          device?: string
+          id?: string
+          ip?: string
+          os?: string
+          user_agent?: string
+          user_id: string
+        }
+        Update: {
+          browser?: string
+          created_at?: string
+          device?: string
+          id?: string
+          ip?: string
+          os?: string
+          user_agent?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "login_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mic_seats: {
         Row: {
           force_muted: boolean
@@ -328,6 +369,30 @@ export type Database = {
         }
         Relationships: []
       }
+      site_settings: {
+        Row: {
+          announcement: string
+          guests_enabled: boolean
+          id: boolean
+          signups_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          announcement?: string
+          guests_enabled?: boolean
+          id?: boolean
+          signups_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          announcement?: string
+          guests_enabled?: boolean
+          id?: boolean
+          signups_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_ranks: {
         Row: {
           assigned_at: string
@@ -382,6 +447,7 @@ export type Database = {
         Returns: undefined
       }
       admin_clear_avatar: { Args: { _user: string }; Returns: undefined }
+      admin_clear_room: { Args: { _room: string }; Returns: number }
       admin_delete_message: { Args: { _id: string }; Returns: undefined }
       admin_delete_rank: { Args: { _id: string }; Returns: undefined }
       admin_delete_room: { Args: { _room: string }; Returns: undefined }
@@ -422,6 +488,10 @@ export type Database = {
       }
       admin_update_room: {
         Args: { _description: string; _name: string; _room: string }
+        Returns: undefined
+      }
+      admin_update_settings: {
+        Args: { _announcement: string; _guests: boolean; _signups: boolean }
         Returns: undefined
       }
       can_act_on: { Args: { _perm: string; _target: string }; Returns: boolean }

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Ban, Heart, ImageOff, KeyRound, Mail, Mic, MicOff, PencilLine, ShieldCheck, Trash2, UserX, VolumeX } from "lucide-react";
+import { Ban, Heart, ImageOff, KeyRound, Mail, Mic, MicOff, PencilLine, ScanSearch, ShieldCheck, Trash2, UserX, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { deleteMember, renameUser, setMemberPassword } from "@/lib/admin.functions";
@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RankBadge, UserAvatar, UserName } from "./user-bits";
+import { RevealForUser } from "@/components/admin/RevealList";
 
 export type MicContext = { roomId: string; seat: number; forceMuted: boolean };
 
@@ -253,8 +254,9 @@ function StaffTools({
   const canMembers = staff.can("manage_members") && (outranks || isMe);
   const canBan = staff.can("ban_users") && outranks;
   const canMic = !!mic && staff.can("moderate_mics") && (outranks || isMe);
+  const canReveal = staff.can("reveal_users") && (outranks || isMe);
 
-  if (!canRanks && !canMembers && !canBan && !canMic) return null;
+  if (!canRanks && !canMembers && !canBan && !canMic && !canReveal) return null;
 
   return (
     <div className="mt-5 w-full space-y-3">
@@ -286,6 +288,12 @@ function StaffTools({
               <UserX /> إنزال من المايك
             </Button>
           </div>
+        </Section>
+      )}
+
+      {canReveal && (
+        <Section title="الكشف" icon={<ScanSearch className="size-4" />}>
+          <RevealForUser userId={userId} />
         </Section>
       )}
 

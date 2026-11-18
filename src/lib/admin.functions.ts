@@ -51,6 +51,7 @@ export const createMember = createServerFn({ method: "POST" })
       password: data.password,
       email_confirm: true,
       user_metadata: { username: data.username },
+      app_metadata: { staff_created: true },
     });
     if (error || !created.user) throw new Error(error?.message?.includes("already") ? "USERNAME_TAKEN" : error?.message ?? "FAILED");
     await writeLog(context.userId, "member_create", data.username, "", created.user.id);

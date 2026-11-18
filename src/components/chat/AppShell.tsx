@@ -1,13 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, DoorOpen, LayoutDashboard, LogOut, Mail, UserRound, Users, VolumeX } from "lucide-react";
+import { Ban, DoorOpen, LayoutDashboard, LogOut, Mail, Megaphone, UserRound, Users, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useOnline, useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useStaff } from "@/lib/staff";
+import { useSiteSettings } from "@/lib/site-settings";
 import { Button } from "@/components/ui/button";
 import { ProfileDialog } from "./ProfileDialog";
 import { Logo, UserAvatar, UserName } from "./user-bits";
@@ -64,6 +65,8 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
   const { users } = useOnline();
   const unread = useUnreadCount();
   const { isStaff, myBan, mySilence } = useStaff();
+  const settings = useSiteSettings();
+  const announcement = settings.data?.announcement?.trim();
   const [profileOpen, setProfileOpen] = useState(false);
   usePrivateMessageAlerts();
 
@@ -152,6 +155,12 @@ export function AppShell({ children, wide = false }: { children: ReactNode; wide
           </div>
         </div>
       </header>
+      {announcement && (
+        <div className="flex items-center justify-center gap-2 border-b border-border bg-primary/10 px-3 py-1.5 text-center text-sm text-primary">
+          <Megaphone className="size-4 shrink-0" />
+          <span className="min-w-0">{announcement}</span>
+        </div>
+      )}
       {mySilence && (
         <div className="flex items-center justify-center gap-2 bg-destructive/15 px-3 py-1.5 text-center text-xs text-destructive">
           <VolumeX className="size-3.5" />
