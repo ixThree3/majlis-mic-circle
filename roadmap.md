@@ -12,3 +12,15 @@
 - [ ] "الكشف": record each sign-in's time, IP and device type; staff with a reveal permission can view it per account
 - [ ] External designer panel (/cp) for the owner only, broader than the in-site panel
 - [ ] Rebuild their reference control panel once the user sends its screenshots/files (waiting on user)
+- [ ] Compact reveal in profile card: icons instead of device/OS/browser names, keep dates; keep "same IP accounts" exactly as is
+- [ ] Stay online 15–30 min when phone screen is off; disconnect only after continued idle
+- [ ] Remember previously used account on the login screen ("continue as …")
+- [ ] Show/hide password button on every password field
+- [ ] iPhone-style emoji picker next to every send box
+- [ ] Room list on top + whole-site online list below (in rooms)
+- [ ] Streak: fire icon with consecutive-days count on profile and next to names in messages; 3 grace days with a dimmed fire
+- [ ] Notifications: likes on profile and on posts ("X liked you at …")
+- [ ] Personal wall per member: posts tab in profile, likes, comments, share, Facebook-style relative dates; posts auto-delete after 1 month
+- [ ] More name colours + Telegram-like name styles + user-selectable Arabic/English fonts
+- [ ] Moderation suite: ban arsenal (device ban, VPN limits, transparent), word/link filter, mic timer, instant mic mute/kick, room lock/quiet mode, site broadcast, staff stealth mode, audit log, quick moderation menu, AI smart protection (reviewable)
+- [ ] Keep useful tools from the uploaded old control panel files, modernised

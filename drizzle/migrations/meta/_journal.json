@@ -50,6 +50,20 @@
       "when": 1794996733976,
       "tag": "0006_reveal_logins_and_site_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795073328608,
+      "tag": "0007_social_features_streak_wall_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795073459083,
+      "tag": "0008_moderation_suite",
+      "breakpoints": true
     }
   ]
 }
