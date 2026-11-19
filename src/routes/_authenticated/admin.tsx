@@ -1,52 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import {
-  Ban,
-  DoorOpen,
-  Heart,
-  History,
-  LayoutDashboard,
-  Pencil,
-  Plus,
-  Search,
-  ShieldCheck,
-  Trash2,
-  UserPlus,
-  Users,
-  VolumeX,
-  Wifi,
-} from "lucide-react";
-import { toast } from "sonner";
+import { Ban, DoorOpen, History, LayoutDashboard, ScanSearch, ShieldCheck, Users } from "lucide-react";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
-import { createMember } from "@/lib/admin.functions";
-import { validateUsername } from "@/lib/auth-utils";
-import { adminErrorToArabic, effectiveLevel, LOG_ACTIONS, PERMISSIONS, type Permission } from "@/lib/permissions";
-import { useOnline } from "@/lib/session";
-import { useStaff, type Rank } from "@/lib/staff";
+import type { Permission } from "@/lib/permissions";
+import { useStaff } from "@/lib/staff";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/chat/AppShell";
-import { useMemberCard } from "@/components/chat/MemberCard";
-import { RankBadge, UserAvatar, UserName } from "@/components/chat/user-bits";
-import { RankEditor } from "@/components/admin/RankEditor";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { RankBadge } from "@/components/chat/user-bits";
+import { Bans, Log, Members, Overview, RevealAll, Ranks, Rooms } from "@/components/admin/sections";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
-const TABS = ["overview", "members", "ranks", "bans", "rooms", "log"] as const;
+const TABS = ["overview", "members", "ranks", "bans", "reveal", "rooms", "log"] as const;
 type Tab = (typeof TABS)[number];
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -70,6 +33,7 @@ const NAV: { tab: Tab; label: string; icon: typeof Users; perms: Permission[] | 
   { tab: "members", label: "الأعضاء", icon: Users, perms: ["manage_members", "manage_ranks", "ban_users"] },
   { tab: "ranks", label: "الرتب والصلاحيات", icon: ShieldCheck, perms: ["manage_ranks"] },
   { tab: "bans", label: "الحظر والإسكات", icon: Ban, perms: ["ban_users"] },
+  { tab: "reveal", label: "الكشف", icon: ScanSearch, perms: ["reveal_users"] },
   { tab: "rooms", label: "الغرف", icon: DoorOpen, perms: ["manage_rooms"] },
   { tab: "log", label: "سجل الإشراف", icon: History, perms: ["view_log"] },
 ];
@@ -128,6 +92,7 @@ function AdminPage() {
           {current.tab === "members" && <Members />}
           {current.tab === "ranks" && <Ranks />}
           {current.tab === "bans" && <Bans />}
+          {current.tab === "reveal" && <RevealAll />}
           {current.tab === "rooms" && <Rooms />}
           {current.tab === "log" && <Log />}
         </div>

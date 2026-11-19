@@ -50,7 +50,7 @@ export function useCount(key: string, build: () => PromiseLike<{ count: number |
   return useQuery({ queryKey: ["admin-count", key], enabled, queryFn: async () => (await build()).count ?? 0 });
 }
 
-export function Overview({ logHref = "/admin" }: { logHref?: "/admin" | "/cp" }) {
+export function Overview() {
   const staff = useStaff();
   const { users } = useOnline();
   const members = useCount("members", () => supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_guest", false));
@@ -98,7 +98,7 @@ export function Overview({ logHref = "/admin" }: { logHref?: "/admin" | "/cp" })
           <Panel
             title="آخر الإجراءات"
             action={
-              <Link to={logHref} search={{ tab: "log" }} className="text-xs text-primary hover:underline">
+              <Link to="/admin" search={{ tab: "log" }} className="text-xs text-primary hover:underline">
                 السجل كامل
               </Link>
             }
